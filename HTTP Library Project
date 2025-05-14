@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"> <!-- Defines character encoding for the document -->
+  <title>API Test UI</title> <!-- Title of the webpage displayed in the browser tab -->
+  <style>
+    /* Basic styling for the layout and appearance of the page */
+    body {
+      font-family: Arial, sans-serif; /* Sets the font for the page */
+      padding: 2rem; /* Adds space around the content */
+      background: #f0f0f0; /* Sets the background color */
+    }
+
+    .container {
+      background: #fff; /* White background for the container */
+      padding: 2rem; /* Padding inside the container */
+      border-radius: 8px; /* Rounded corners for the container */
+      box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Soft shadow around the container */
+      max-width: 800px; /* Maximum width of the container */
+      margin: auto; /* Centers the container horizontally */
+    }
+
+    label {
+      display: block; /* Makes label elements block-level */
+      margin-top: 1rem; /* Adds space above each label */
+      font-weight: bold; /* Makes label text bold */
+    }
+
+    input, select, textarea {
+      width: 100%; /* Makes the input fields fill the container's width */
+      padding: 0.5rem; /* Adds padding inside the input fields */
+      margin-top: 0.5rem; /* Adds space above input fields */
+      border: 1px solid #ccc; /* Adds a border with a light color */
+      border-radius: 4px; /* Rounded corners for the input fields */
+    }
+
+    button {
+      margin-top: 1rem; /* Adds space above the button */
+      padding: 0.75rem 1.5rem; /* Sets padding inside the button */
+      background-color: #28a745; /* Green background for the button */
+      color: white; /* White text color for the button */
+      border: none; /* Removes default border of the button */
+      border-radius: 4px; /* Rounded corners for the button */
+      cursor: pointer; /* Changes the cursor to a pointer on hover */
+    }
+
+    button:hover {
+      background-color: #218838; /* Darker green background when the button is hovered */
+    }
+
+    pre {
+      background: #333; /* Dark background for the response box */
+      color: #0f0; /* Green text for the response box */
+      padding: 1rem; /* Adds padding inside the response box */
+      border-radius: 8px; /* Rounded corners for the response box */
+      overflow-x: auto; /* Allows horizontal scrolling if content overflows */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>API Test UI</h1>
