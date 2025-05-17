@@ -1,62 +1,157 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"> <!-- Defines character encoding for the document -->
-  <title>API Test UI</title> <!-- Title of the webpage displayed in the browser tab -->
-  <style>
-    /* Basic styling for the layout and appearance of the page */
-    body {
-      font-family: Arial, sans-serif; /* Sets the font for the page */
-      padding: 2rem; /* Adds space around the content */
-      background: #f0f0f0; /* Sets the background color */
+// apiClient.js
+export default class ApiClient {
+  constructor(baseUrl) {
+    this.baseUrl = baseUrl; // Store the base URL for the API
+  }
+
+  // Builds the full URL with route, parameters, and query strings
+  buildUrl(route, params = {}, query = {}) {
+    let url = `${this.baseUrl}${route}`; // Start with base URL and route
+
+    // Replace dynamic route parameters (e.g. :id) with actual values
+    for (const [key, value] of Object.entries(params)) {
+      url = url.replace(`:${key}`, value);
     }
 
-    .container {
-      background: #fff; /* White background for the container */
-      padding: 2rem; /* Padding inside the container */
-      border-radius: 8px; /* Rounded corners for the container */
-      box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Soft shadow around the container */
-      max-width: 800px; /* Maximum width of the container */
-      margin: auto; /* Centers the container horizontally */
-    }
+    // Convert query object to query string and append if exists
+    const queryString = new URLSearchParams(query).toString();
+    return queryString ? `${url}?${queryString}` : url;
+  }
 
-    label {
-      display: block; /* Makes label elements block-level */
-      margin-top: 1rem; /* Adds space above each label */
-      font-weight: bold; /* Makes label text bold */
-    }
+  // Generic method to make an HTTP request
+  async request(method, route, { params = {}, query = {}, body = null } = {}) {
+    try {
+      const url = this.buildUrl(route, params, query); // Build full request URL
+      const options = {
+        method, // HTTP method (GET, POST, etc.)
+        headers: {
+          'Content-Type': 'application/json', // Set content type to JSON
+        },
+      };
+      // Attach body for non-GET requests
+      if (body && method !== 'GET') options.body = JSON.stringify(body);
 
-    input, select, textarea {
-      width: 100%; /* Makes the input fields fill the container's width */
-      padding: 0.5rem; /* Adds padding inside the input fields */
-      margin-top: 0.5rem; /* Adds space above input fields */
-      border: 1px solid #ccc; /* Adds a border with a light color */
-      border-radius: 4px; /* Rounded corners for the input fields */
+      const response = await fetch(url, options); // Send HTTP request
+      const json = await response.json(); // Parse JSON response
+      return { success: true, status: response.status, data: json }; // Return success object
+    } catch (error) {
+      return { success: false, error: error.message }; // Return error object on failure
     }
+  }
 
-    button {
-      margin-top: 1rem; /* Adds space above the button */
-      padding: 0.75rem 1.5rem; /* Sets padding inside the button */
-      background-color: #28a745; /* Green background for the button */
-      color: white; /* White text color for the button */
-      border: none; /* Removes default border of the button */
-      border-radius: 4px; /* Rounded corners for the button */
-      cursor: pointer; /* Changes the cursor to a pointer on hover */
-    }
+  // Shortcut method for GET requests
+  get(route, options = {}) {
+    return this.request('GET', route, options);
+  }
 
-    button:hover {
-      background-color: #218838; /* Darker green background when the button is hovered */
-    }
+  // Shortcut method for POST requests
+  post(route, options = {}) {
+    return this.request('POST', route, options);
+  }
 
-    pre {
-      background: #333; /* Dark background for the response box */
-      color: #0f0; /* Green text for the response box */
-      padding: 1rem; /* Adds padding inside the response box */
-      border-radius: 8px; /* Rounded corners for the response box */
-      overflow-x: auto; /* Allows horizontal scrolling if content overflows */
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>API Test UI</h1>
+  // Shortcut method for PUT requests
+  put(route, options = {}) {
+    return this.request('PUT', route, options);
+  }
+
+  // Shortcut method for DELETE requests
+  delete(route, options = {}) {
+    return this.request('DELETE', route, options);
+  }
+
+  // Shortcut method for PATCH requests
+  patch(route, options = {}) {
+    return this.request('PATCH', route, options);
+  }
+}
+
+
+// App.jsx
+import { useState } from 'react';
+import ApiClient from './apiClient';
+
+// Create an instance of the API client with a base URL
+const api = new ApiClient('https://jsonplaceholder.typicode.com');
+
+export default function App() {
+  // Set up state for method, route, params, query, body, and response
+  const [method, setMethod] = useState('GET');
+  const [route, setRoute] = useState('/users');
+  const [params, setParams] = useState('{}');
+  const [query, setQuery] = useState('{}');
+  const [body, setBody] = useState('{}');
+  const [response, setResponse] = useState(null);
+
+  // Handle form submission to send API request
+  const handleSubmit = async () => {
+    const parsedParams = JSON.parse(params || '{}'); // Parse route params from input
+    const parsedQuery = JSON.parse(query || '{}'); // Parse query params from input
+    const parsedBody = JSON.parse(body || '{}'); // Parse body from input
+
+    // Call appropriate method on api client and store response
+    const res = await api[method.toLowerCase()](route, {
+      params: parsedParams,
+      query: parsedQuery,
+      body: parsedBody,
+    });
+
+    setResponse(res); // Update response state
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      <h1 className="text-2xl font-bold">API Tester</h1> {/* Title */}
+
+      {/* HTTP Method Dropdown */}
+      <div className="space-y-2">
+        <label className="block">HTTP Method:</label>
+        <select value={method} onChange={(e) => setMethod(e.target.value)} className="p-2 border">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PUT</option>
+          <option>DELETE</option>
+          <option>PATCH</option>
+        </select>
+      </div>
+
+      {/* Route Input */}
+      <div>
+        <label className="block">Route (e.g. /users/:id):</label>
+        <input value={route} onChange={(e) => setRoute(e.target.value)} className="w-full p-2 border" />
+      </div>
+
+      {/* Params Input */}
+      <div>
+        <label className="block">Params (JSON):</label>
+        <textarea value={params} onChange={(e) => setParams(e.target.value)} className="w-full p-2 border" />
+      </div>
+
+      {/* Query Input */}
+      <div>
+        <label className="block">Query (JSON):</label>
+        <textarea value={query} onChange={(e) => setQuery(e.target.value)} className="w-full p-2 border" />
+      </div>
+
+      {/* Body Input - shown only for POST, PUT, PATCH */}
+      {(method !== 'GET' && method !== 'DELETE') && (
+        <div>
+          <label className="block">Body (JSON):</label>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} className="w-full p-2 border" />
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded">Send Request</button>
+
+      {/* Response Display */}
+      {response && (
+        <div className="mt-4">
+          <h2 className="text-xl font-semibold">Response:</h2>
+          <pre className="bg-gray-100 p-4 overflow-x-auto text-sm whitespace-pre-wrap">
+            {JSON.stringify(response, null, 2)} {/* Pretty print the response JSON */}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
