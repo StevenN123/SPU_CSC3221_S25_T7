@@ -1,34 +1,39 @@
+// http-client.js
 export default class HttpClient {
-  constructor(baseUrl) {
-    this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  constructor(baseUrl = '') {
+    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
   }
 
   async request(method, endpoint, { params = {}, query = {}, body = null } = {}) {
-    // 1. Replace route parameters
-    let url = endpoint.replace(/\/:(\w+)/g, (_, key) => `/${params[key]}`);
-    
-    // 2. Add base URL
-    url = `${this.baseUrl}${url}`;
-    
-    // 3. Add query parameters
-    const queryString = new URLSearchParams(query).toString();
-    if (queryString) url += `?${queryString}`;
+    try {
+      // Replace route parameters
+      let url = endpoint.replace(/\/:(\w+)/g, (_, key) => `/${params[key]}`);
+      url = `${this.baseUrl}${url}`;
 
-    // 4. Make the request
-    const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' }
-    };
-    
-    if (body) options.body = JSON.stringify(body);
+      // Add query parameters
+      const queryStr = new URLSearchParams(query).toString();
+      if (queryStr) url += `?${queryStr}`;
 
-    const response = await fetch(url, options);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+      };
+
+      if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Request failed:', error);
+      throw error;
     }
-    
-    return response.json();
   }
 
   get(endpoint, options) {
@@ -39,15 +44,15 @@ export default class HttpClient {
     return this.request('POST', endpoint, options);
   }
 
-put(endpoint, options) {
-  return this.request('PUT', endpoint, options);
-}
+  put(endpoint, options) {
+    return this.request('PUT', endpoint, options);
+  }
 
-delete(endpoint, options) {
-  return this.request('DELETE', endpoint, options);
-}
+  delete(endpoint, options) {
+    return this.request('DELETE', endpoint, options);
+  }
 
-patch(endpoint, options) {
-  return this.request('PATCH', endpoint, options);
-}
+  patch(endpoint, options) {
+    return this.request('PATCH', endpoint, options);
+  }
 }
