@@ -1,104 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>HTTP Client UI</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP Client Library Demo | GitHub</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; }
-    input, select, textarea, button { width: 100%; margin: 0.5rem 0; padding: 0.5rem; box-sizing: border-box; }
-    pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
-    .error { color: red; }
-    .loading { color: blue; }
+    /* GitHub-like styling */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #24292e;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      border-bottom: 1px solid #eaecef;
+      padding-bottom: 0.3em;
+    }
+    .container {
+      background-color: #f6f8fa;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #e1e4e8;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    select, input, textarea {
+      width: 100%;
+      padding: 6px 12px;
+      margin-bottom: 16px;
+      border: 1px solid #d1d5da;
+      border-radius: 6px;
+      font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    textarea {
+      min-height: 100px;
+    }
+    button {
+      background-color: #2ea44f;
+      color: white;
+      border: 1px solid rgba(27, 31, 35, 0.15);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2c974b;
+    }
+    pre {
+      background-color: #f6f8fa;
+      padding: 16px;
+      border-radius: 6px;
+      border: 1px solid #e1e4e8;
+      overflow-x: auto;
+    }
+    .error {
+      color: #cb2431;
+    }
+    .success {
+      color: #22863a;
+    }
   </style>
 </head>
 <body>
-  <h1>HTTP Library Project</h1>
-  <select id="method">
-    <option>GET</option>
-    <option>POST</option>
-    <option>PUT</option>
-    <option>DELETE</option>
-    <option>PATCH</option>
-  </select>
+  <h1>HTTP Client Library Demo</h1>
+  
+  <div class="container">
+    <h2>Test Configuration</h2>
+    <label for="method">HTTP Method:</label>
+    <select id="method">
+      <option value="GET">GET</option>
+      <option value="POST">POST</option>
+      <option value="PUT">PUT</option>
+      <option value="DELETE">DELETE</option>
+      <option value="PATCH">PATCH</option>
+    </select>
 
-  <input id="route" placeholder="/users or /users/:id" value="/users" />
-  <input id="params" placeholder='Params (e.g. {"id":1})' value='{}' />
-  <input id="query" placeholder='Query (e.g. {"key":"value"})' value='{}' />
-  <textarea id="body" placeholder='Body (e.g. {"name":"John"})' rows="4">{"name":"John"}</textarea>
+    <label for="endpoint">API Endpoint:</label>
+    <input id="endpoint" type="text" value="/posts/1" placeholder="e.g. /posts/1">
 
-  <button onclick="sendRequest()">Send Request</button>
-  <div id="status"></div>
-  <h3>Response:</h3>
-  <pre id="responseBox">Waiting for request...</pre>
+    <label for="params">Route Parameters (JSON):</label>
+    <textarea id="params" placeholder='{"id": 1}'>{"id": 1}</textarea>
 
-  <script>
-    // Modified to work without modules
-    class ApiClient {
-      constructor(baseUrl) {
-        this.baseUrl = baseUrl;
-      }
+    <label for="query">Query Parameters (JSON):</label>
+    <textarea id="query" placeholder='{"userId": 1}'>{"userId": 1}</textarea>
 
-      buildUrl(route, params = {}, query = {}) {
-        let url = `${this.baseUrl}${route}`;
-        for (const [key, value] of Object.entries(params)) {
-          url = url.replace(`:${key}`, value);
-        }
-        const queryString = new URLSearchParams(query).toString();
-        return queryString ? `${url}?${queryString}` : url;
-      }
+    <label for="body">Request Body (JSON):</label>
+    <textarea id="body" placeholder='{"title": "Hello", "body": "World"}'>{"title": "Hello", "body": "World", "userId": 1}</textarea>
 
-      async request(method, route, { params = {}, query = {}, body = null } = {}) {
-        const url = this.buildUrl(route, params, query);
-        const options = {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-        };
-        if (body && method !== 'GET') options.body = JSON.stringify(body);
-        
-        const response = await fetch(url, options);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
-      }
+    <button onclick="sendRequest()">Send Request</button>
+  </div>
 
-      get(route, options) { return this.request('GET', route, options); }
-      post(route, options) { return this.request('POST', route, options); }
-      put(route, options) { return this.request('PUT', route, options); }
-      delete(route, options) { return this.request('DELETE', route, options); }
-      patch(route, options) { return this.request('PATCH', route, options); }
-    }
+  <div class="container">
+    <h2>Response</h2>
+    <div id="status"></div>
+    <pre id="response">// Response will appear here</pre>
+  </div>
 
-    const api = new ApiClient('https://jsonplaceholder.typicode.com');
+  <script type="module">
+    import HttpClient from './src/http-client.js';
 
-    async function sendRequest() {
-      const statusEl = document.getElementById('status');
-      const responseBox = document.getElementById('responseBox');
-      
-      try {
-        statusEl.innerHTML = '<span class="loading">Sending request...</span>';
-        statusEl.className = '';
-        
-        const method = document.getElementById('method').value;
-        const route = document.getElementById('route').value;
-        const params = parseInput('params');
-        const query = parseInput('query');
-        const body = parseInput('body');
+    // Initialize client with JSONPlaceholder API
+    const client = new HttpClient('https://jsonplaceholder.typicode.com');
 
-        const result = await api[method.toLowerCase()](route, { params, query, body });
-        responseBox.textContent = JSON.stringify(result, null, 2);
-        statusEl.innerHTML = '<span class="success">Request successful!</span>';
-      } catch (err) {
-        responseBox.textContent = `Error: ${err.message}`;
-        statusEl.innerHTML = `<span class="error">${err.message}</span>`;
-      }
-    }
-
+    // Helper function to parse JSON input
     function parseInput(id) {
-      const el = document.getElementById(id);
+      const element = document.getElementById(id);
       try {
-        return el.value ? JSON.parse(el.value) : {};
+        return element.value ? JSON.parse(element.value) : {};
       } catch (e) {
         throw new Error(`Invalid JSON in ${id}: ${e.message}`);
+      }
+    }
+
+    // Main request function
+    async function sendRequest() {
+      const statusElement = document.getElementById('status');
+      const responseElement = document.getElementById('response');
+      
+      try {
+        statusElement.innerHTML = '<span class="success">Sending request...</span>';
+        
+        const method = document.getElementById('method').value;
+        const endpoint = document.getElementById('endpoint').value;
+        const params = parseInput('params');
+        const query = parseInput('query');
+        const body = method === 'GET' || method === 'DELETE' ? null : parseInput('body');
+
+        const response = await client[method.toLowerCase()](endpoint, { params, query, body });
+        
+        statusElement.innerHTML = '<span class="success">Request successful!</span>';
+        responseElement.textContent = JSON.stringify(response, null, 2);
+      } catch (error) {
+        statusElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+        responseElement.textContent = error.stack || error.message;
       }
     }
   </script>
