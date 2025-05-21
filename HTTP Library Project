@@ -70,85 +70,133 @@ export default class ApiClient {
 import { useState } from 'react';
 import ApiClient from './apiClient';
 
-// Create an instance of the API client with a base URL
 const api = new ApiClient('https://jsonplaceholder.typicode.com');
 
 export default function App() {
-  // Set up state for method, route, params, query, body, and response
   const [method, setMethod] = useState('GET');
   const [route, setRoute] = useState('/users');
   const [params, setParams] = useState('{}');
   const [query, setQuery] = useState('{}');
-  const [body, setBody] = useState('{}');
+  const [body, setBody] = useState('{"name":"John"}');
   const [response, setResponse] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Handle form submission to send API request
   const handleSubmit = async () => {
-    const parsedParams = JSON.parse(params || '{}'); // Parse route params from input
-    const parsedQuery = JSON.parse(query || '{}'); // Parse query params from input
-    const parsedBody = JSON.parse(body || '{}'); // Parse body from input
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const parsedParams = parseInput(params, 'Params');
+      const parsedQuery = parseInput(query, 'Query');
+      const parsedBody = parseInput(body, 'Body');
 
-    // Call appropriate method on api client and store response
-    const res = await api[method.toLowerCase()](route, {
-      params: parsedParams,
-      query: parsedQuery,
-      body: parsedBody,
-    });
+      const res = await api[method.toLowerCase()](route, {
+        params: parsedParams,
+        query: parsedQuery,
+        body: parsedBody,
+      });
 
-    setResponse(res); // Update response state
+      setResponse(res);
+    } catch (err) {
+      setError(err.message);
+      setResponse(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const parseInput = (value, field) => {
+    try {
+      return value ? JSON.parse(value) : {};
+    } catch (e) {
+      throw new Error(`Invalid ${field} JSON: ${e.message}`);
+    }
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">API Tester</h1> {/* Title */}
+    <div className="p-6 space-y-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold">API Tester</h1>
 
-      {/* HTTP Method Dropdown */}
+      {/* Method Selector */}
       <div className="space-y-2">
         <label className="block">HTTP Method:</label>
-        <select value={method} onChange={(e) => setMethod(e.target.value)} className="p-2 border">
-          <option>GET</option>
-          <option>POST</option>
-          <option>PUT</option>
-          <option>DELETE</option>
-          <option>PATCH</option>
+        <select 
+          value={method} 
+          onChange={(e) => setMethod(e.target.value)} 
+          className="p-2 border w-full"
+        >
+          {['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
         </select>
       </div>
 
       {/* Route Input */}
       <div>
-        <label className="block">Route (e.g. /users/:id):</label>
-        <input value={route} onChange={(e) => setRoute(e.target.value)} className="w-full p-2 border" />
+        <label className="block">Route:</label>
+        <input 
+          value={route} 
+          onChange={(e) => setRoute(e.target.value)} 
+          className="w-full p-2 border" 
+          placeholder="/users/:id"
+        />
       </div>
 
       {/* Params Input */}
       <div>
         <label className="block">Params (JSON):</label>
-        <textarea value={params} onChange={(e) => setParams(e.target.value)} className="w-full p-2 border" />
+        <textarea 
+          value={params} 
+          onChange={(e) => setParams(e.target.value)} 
+          className="w-full p-2 border" 
+          rows={3}
+        />
       </div>
 
       {/* Query Input */}
       <div>
         <label className="block">Query (JSON):</label>
-        <textarea value={query} onChange={(e) => setQuery(e.target.value)} className="w-full p-2 border" />
+        <textarea 
+          value={query} 
+          onChange={(e) => setQuery(e.target.value)} 
+          className="w-full p-2 border" 
+          rows={3}
+        />
       </div>
 
-      {/* Body Input - shown only for POST, PUT, PATCH */}
+      {/* Body Input */}
       {(method !== 'GET' && method !== 'DELETE') && (
         <div>
           <label className="block">Body (JSON):</label>
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} className="w-full p-2 border" />
+          <textarea 
+            value={body} 
+            onChange={(e) => setBody(e.target.value)} 
+            className="w-full p-2 border" 
+            rows={5}
+          />
         </div>
       )}
 
       {/* Submit Button */}
-      <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded">Send Request</button>
+      <button 
+        onClick={handleSubmit} 
+        disabled={loading}
+        className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-blue-300"
+      >
+        {loading ? 'Sending...' : 'Send Request'}
+      </button>
+
+      {/* Status Messages */}
+      {loading && <div className="text-blue-500">Loading...</div>}
+      {error && <div className="text-red-500">{error}</div>}
 
       {/* Response Display */}
       {response && (
         <div className="mt-4">
           <h2 className="text-xl font-semibold">Response:</h2>
           <pre className="bg-gray-100 p-4 overflow-x-auto text-sm whitespace-pre-wrap">
-            {JSON.stringify(response, null, 2)} {/* Pretty print the response JSON */}
+            {JSON.stringify(response, null, 2)}
           </pre>
         </div>
       )}
