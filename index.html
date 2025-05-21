@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HTTP Client UI</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    input, select, textarea, button { width: 100%; margin: 0.5rem 0; padding: 0.5rem; }
+    body { font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; }
+    input, select, textarea, button { width: 100%; margin: 0.5rem 0; padding: 0.5rem; box-sizing: border-box; }
     pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
+    .error { color: red; }
+    .loading { color: blue; }
   </style>
 </head>
 <body>
@@ -20,37 +22,85 @@
     <option>PATCH</option>
   </select>
 
-  <input id="route" placeholder="/users or /users/:id" />
-  <input id="params" placeholder='Params (e.g. {"id":1})' />
-  <input id="query" placeholder='Query (e.g. {"key":"value"})' />
-  <textarea id="body" placeholder='Body (e.g. {"name":"John"})'></textarea>
+  <input id="route" placeholder="/users or /users/:id" value="/users" />
+  <input id="params" placeholder='Params (e.g. {"id":1})' value='{}' />
+  <input id="query" placeholder='Query (e.g. {"key":"value"})' value='{}' />
+  <textarea id="body" placeholder='Body (e.g. {"name":"John"})' rows="4">{"name":"John"}</textarea>
 
   <button onclick="sendRequest()">Send Request</button>
+  <div id="status"></div>
   <h3>Response:</h3>
   <pre id="responseBox">Waiting for request...</pre>
 
-  <script type="module">
-    import ApiClient from './apiClient.js';
+  <script>
+    // Modified to work without modules
+    class ApiClient {
+      constructor(baseUrl) {
+        this.baseUrl = baseUrl;
+      }
+
+      buildUrl(route, params = {}, query = {}) {
+        let url = `${this.baseUrl}${route}`;
+        for (const [key, value] of Object.entries(params)) {
+          url = url.replace(`:${key}`, value);
+        }
+        const queryString = new URLSearchParams(query).toString();
+        return queryString ? `${url}?${queryString}` : url;
+      }
+
+      async request(method, route, { params = {}, query = {}, body = null } = {}) {
+        const url = this.buildUrl(route, params, query);
+        const options = {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+        };
+        if (body && method !== 'GET') options.body = JSON.stringify(body);
+        
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+      }
+
+      get(route, options) { return this.request('GET', route, options); }
+      post(route, options) { return this.request('POST', route, options); }
+      put(route, options) { return this.request('PUT', route, options); }
+      delete(route, options) { return this.request('DELETE', route, options); }
+      patch(route, options) { return this.request('PATCH', route, options); }
+    }
 
     const api = new ApiClient('https://jsonplaceholder.typicode.com');
 
     async function sendRequest() {
-      const method = document.getElementById('method').value;
-      const route = document.getElementById('route').value;
-      const params = JSON.parse(document.getElementById('params').value || '{}');
-      const query = JSON.parse(document.getElementById('query').value || '{}');
-      const body = JSON.parse(document.getElementById('body').value || '{}');
-
-      let result;
+      const statusEl = document.getElementById('status');
+      const responseBox = document.getElementById('responseBox');
+      
       try {
-        result = await api[method.toLowerCase()](route, { params, query, body });
-      } catch (err) {
-        result = { error: err.message };
-      }
+        statusEl.innerHTML = '<span class="loading">Sending request...</span>';
+        statusEl.className = '';
+        
+        const method = document.getElementById('method').value;
+        const route = document.getElementById('route').value;
+        const params = parseInput('params');
+        const query = parseInput('query');
+        const body = parseInput('body');
 
-      document.getElementById('responseBox').textContent = JSON.stringify(result, null, 2);
+        const result = await api[method.toLowerCase()](route, { params, query, body });
+        responseBox.textContent = JSON.stringify(result, null, 2);
+        statusEl.innerHTML = '<span class="success">Request successful!</span>';
+      } catch (err) {
+        responseBox.textContent = `Error: ${err.message}`;
+        statusEl.innerHTML = `<span class="error">${err.message}</span>`;
+      }
+    }
+
+    function parseInput(id) {
+      const el = document.getElementById(id);
+      try {
+        return el.value ? JSON.parse(el.value) : {};
+      } catch (e) {
+        throw new Error(`Invalid JSON in ${id}: ${e.message}`);
+      }
     }
   </script>
 </body>
 </html>
-
