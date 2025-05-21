@@ -1,145 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTTP Client Library Demo | GitHub</title>
+  <title>HTTP Library Test</title>
   <style>
-    /* GitHub-like styling */
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-      color: #24292e;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    h1 {
-      border-bottom: 1px solid #eaecef;
-      padding-bottom: 0.3em;
-    }
-    .container {
-      background-color: #f6f8fa;
-      border-radius: 6px;
-      padding: 20px;
-      margin-bottom: 20px;
-      border: 1px solid #e1e4e8;
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-    select, input, textarea {
-      width: 100%;
-      padding: 6px 12px;
-      margin-bottom: 16px;
-      border: 1px solid #d1d5da;
-      border-radius: 6px;
-      font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-    }
-    textarea {
-      min-height: 100px;
-    }
-    button {
-      background-color: #2ea44f;
-      color: white;
-      border: 1px solid rgba(27, 31, 35, 0.15);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #2c974b;
-    }
-    pre {
-      background-color: #f6f8fa;
-      padding: 16px;
-      border-radius: 6px;
-      border: 1px solid #e1e4e8;
-      overflow-x: auto;
-    }
-    .error {
-      color: #cb2431;
-    }
-    .success {
-      color: #22863a;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { padding: 8px; margin: 5px 0; }
+    pre { background: #f0f0f0; padding: 10px; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <h1>HTTP Client Library Demo</h1>
+  <h1>HTTP Library Test</h1>
   
-  <div class="container">
-    <h2>Test Configuration</h2>
-    <label for="method">HTTP Method:</label>
-    <select id="method">
-      <option value="GET">GET</option>
-      <option value="POST">POST</option>
-      <option value="PUT">PUT</option>
-      <option value="DELETE">DELETE</option>
-      <option value="PATCH">PATCH</option>
-    </select>
-
-    <label for="endpoint">API Endpoint:</label>
-    <input id="endpoint" type="text" value="/posts/1" placeholder="e.g. /posts/1">
-
-    <label for="params">Route Parameters (JSON):</label>
-    <textarea id="params" placeholder='{"id": 1}'>{"id": 1}</textarea>
-
-    <label for="query">Query Parameters (JSON):</label>
-    <textarea id="query" placeholder='{"userId": 1}'>{"userId": 1}</textarea>
-
-    <label for="body">Request Body (JSON):</label>
-    <textarea id="body" placeholder='{"title": "Hello", "body": "World"}'>{"title": "Hello", "body": "World", "userId": 1}</textarea>
-
-    <button onclick="sendRequest()">Send Request</button>
-  </div>
-
-  <div class="container">
-    <h2>Response</h2>
-    <div id="status"></div>
-    <pre id="response">// Response will appear here</pre>
-  </div>
+  <select id="method">
+    <option>GET</option>
+    <option>POST</option>
+    <option>PUT</option>
+    <option>DELETE</option>
+  </select>
+  
+  <input id="endpoint" placeholder="/users/1" value="/users/1">
+  <input id="params" placeholder='{"id":1}' value='{"id":1}'>
+  <input id="query" placeholder='{"key":"value"}'>
+  <textarea id="body" placeholder='{"name":"John"}' rows="3">{"name":"John"}</textarea>
+  
+  <button onclick="sendRequest()">Send Request</button>
+  
+  <h3>Response:</h3>
+  <pre id="response"></pre>
 
   <script type="module">
     import HttpClient from './src/http-client.js';
-
-    // Initialize client with JSONPlaceholder API
+    
     const client = new HttpClient('https://jsonplaceholder.typicode.com');
-
-    // Helper function to parse JSON input
-    function parseInput(id) {
-      const element = document.getElementById(id);
-      try {
-        return element.value ? JSON.parse(element.value) : {};
-      } catch (e) {
-        throw new Error(`Invalid JSON in ${id}: ${e.message}`);
-      }
-    }
-
-    // Main request function
+    
     async function sendRequest() {
-      const statusElement = document.getElementById('status');
-      const responseElement = document.getElementById('response');
-      
       try {
-        statusElement.innerHTML = '<span class="success">Sending request...</span>';
-        
         const method = document.getElementById('method').value;
         const endpoint = document.getElementById('endpoint').value;
-        const params = parseInput('params');
-        const query = parseInput('query');
-        const body = method === 'GET' || method === 'DELETE' ? null : parseInput('body');
-
-        const response = await client[method.toLowerCase()](endpoint, { params, query, body });
+        const params = JSON.parse(document.getElementById('params').value || {});
+        const query = JSON.parse(document.getElementById('query').value || {});
+        const body = JSON.parse(document.getElementById('body').value || null);
         
-        statusElement.innerHTML = '<span class="success">Request successful!</span>';
-        responseElement.textContent = JSON.stringify(response, null, 2);
+        const response = await client[method.toLowerCase()](endpoint, { params, query, body });
+        document.getElementById('response').textContent = JSON.stringify(response, null, 2);
       } catch (error) {
-        statusElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
-        responseElement.textContent = error.stack || error.message;
+        document.getElementById('response').textContent = `Error: ${error.message}`;
       }
     }
   </script>
