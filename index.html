@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HTTP Client UI</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    input, select, textarea, button { width: 100%; margin: 0.5rem 0; padding: 0.5rem; }
+    pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>API Tester</h1>
+  <select id="method">
+    <option>GET</option>
+    <option>POST</option>
+    <option>PUT</option>
+    <option>DELETE</option>
+    <option>PATCH</option>
+  </select>
+
+  <input id="route" placeholder="/users or /users/:id" />
+  <input id="params" placeholder='Params (e.g. {"id":1})' />
+  <input id="query" placeholder='Query (e.g. {"key":"value"})' />
+  <textarea id="body" placeholder='Body (e.g. {"name":"John"})'></textarea>
+
+  <button onclick="sendRequest()">Send Request</button>
+  <h3>Response:</h3>
+  <pre id="responseBox">Waiting for request...</pre>
+
+  <script type="module">
+    import ApiClient from './apiClient.js';
+
+    const api = new ApiClient('https://jsonplaceholder.typicode.com');
+
+    async function sendRequest() {
+      const method = document.getElementById('method').value;
+      const route = document.getElementById('route').value;
+      const params = JSON.parse(document.getElementById('params').value || '{}');
+      const query = JSON.parse(document.getElementById('query').value || '{}');
+      const body = JSON.parse(document.getElementById('body').value || '{}');
+
+      let result;
+      try {
+        result = await api[method.toLowerCase()](route, { params, query, body });
+      } catch (err) {
+        result = { error: err.message };
+      }
+
+      document.getElementById('responseBox').textContent = JSON.stringify(result, null, 2);
+    }
+  </script>
+</body>
+</html>
 
