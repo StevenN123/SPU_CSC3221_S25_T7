@@ -1,16 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>HTTP Library Test</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP Library Project</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    input, button { padding: 8px; margin: 5px 0; }
-    pre { background: #f0f0f0; padding: 10px; }
-    .error { color: red; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      box-sizing: border-box;
+    }
+    pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>HTTP Library Test</h1>
+  <h1>HTTP Library Project</h1>
   
   <select id="method">
     <option>GET</option>
@@ -19,33 +34,34 @@
     <option>DELETE</option>
   </select>
   
-  <input id="endpoint" placeholder="/users/1" value="/users/1">
-  <input id="params" placeholder='{"id":1}' value='{"id":1}'>
-  <input id="query" placeholder='{"key":"value"}'>
-  <textarea id="body" placeholder='{"name":"John"}' rows="3">{"name":"John"}</textarea>
+  <input id="endpoint" placeholder="Endpoint" value="/users/1">
+  <input id="params" placeholder='Params (e.g. {"id":1})' value='{"id":1}'>
+  <input id="query" placeholder='Query (e.g. {"key":"value"})'>
+  <textarea id="body" placeholder='Body (e.g. {"name":"John"})' rows="3">{"name":"John"}</textarea>
   
   <button onclick="sendRequest()">Send Request</button>
   
   <h3>Response:</h3>
-  <pre id="response"></pre>
+  <pre id="response">Waiting for request...</pre>
 
   <script type="module">
-    import HttpClient from './src/http-client.js';
+    import HttpClient from './http-client.js';
     
-    const client = new HttpClient('https://jsonplaceholder.typicode.com');
+    const api = new HttpClient('https://jsonplaceholder.typicode.com');
     
     async function sendRequest() {
       try {
         const method = document.getElementById('method').value;
         const endpoint = document.getElementById('endpoint').value;
-        const params = JSON.parse(document.getElementById('params').value || {});
-        const query = JSON.parse(document.getElementById('query').value || {});
-        const body = JSON.parse(document.getElementById('body').value || null);
+        const params = JSON.parse(document.getElementById('params').value || '{}');
+        const query = JSON.parse(document.getElementById('query').value || '{}');
+        const bodyText = document.getElementById('body').value.trim();
+        const body = bodyText ? JSON.parse(bodyText) : {};
         
-        const response = await client[method.toLowerCase()](endpoint, { params, query, body });
-        document.getElementById('response').textContent = JSON.stringify(response, null, 2);
-      } catch (error) {
-        document.getElementById('response').textContent = `Error: ${error.message}`;
+        const result = await api[method.toLowerCase()](endpoint, { params, query, body });
+        document.getElementById('response').textContent = JSON.stringify(result, null, 2);
+      } catch (err) {
+        document.getElementById('response').textContent = `Error: ${err.message}`;
       }
     }
   </script>
