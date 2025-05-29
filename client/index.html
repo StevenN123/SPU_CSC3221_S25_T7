@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My List Manager</title>
+  
+  <!-- Links to our CSS file for styling -->
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  
+  <!-- Main wrapper to center content -->
+  <div class="container">
+    <!-- Page title -->
+    <h1>My List</h1>
+
+    <!-- Input: types a new item, then click “Add” -->
+    <div class="input-group">
+      <input id="newItem" placeholder="Type a new item here..." />
+      <button id="addBtn">Add</button>
+    </div>
+
+    <!-- This ul will hold our list items -->
+    <ul id="itemList"></ul>
+
+    <!-- Use this <div> to show error messages -->
+    <div id="errorMsg"></div>
+  </div>
+
+  <!-- Load our JavaScript as a module so we can use imports -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
