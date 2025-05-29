@@ -1,0 +1,66 @@
+/*setting a font */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f7f7f7;
+  padding: 20px;
+  margin: 0;
+}
+
+/* Centering the white box on the page */
+.container {
+  max-width: 400px;
+  margin: 0 auto; /* horizontal center */
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Layout for the input + button side by side */
+.input-group {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.input-group input {
+  flex: 1;              /* fill available space */
+  padding: 8px;
+  font-size: 16px;
+}
+
+.input-group button {
+  padding: 8px 12px;
+  margin-left: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Removes the default bullets and padding */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+/* Each list item: space between texts and delete button */
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+li button {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #d00;
+  cursor: pointer;
+}
+
+/* Styling for error messages */
+#errorMsg {
+  color: #d00;
+  margin-top: 10px;
+  min-height: 1.2em; /* reserve space even when its empty */
+}
