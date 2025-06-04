@@ -18,7 +18,9 @@ async function loadItems() {
   try {
     const items = await api.get('/items'); // get array from server
     showItems(items);                      // show in the list
-  } catch {
+    errorElement.textContent = ''; // Clear any previous errors
+  } catch (error) {
+    console.error('Load error:', error);
     errorElement.textContent = 'Could not load items.';
   }
 }
@@ -28,7 +30,7 @@ async function loadItems() {
  * Clears the <ul> and then adds each item as an <li>
  */
 function showItems(items) {
-  // Clears the  existing list
+  // Clears the existing list
   listElement.innerHTML = '';
 
   // For each string in the items array:
@@ -40,7 +42,7 @@ function showItems(items) {
     // Creates a delete button for each item
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = '✖';   
-    deleteBtn.onclick = () => deleteItem(index, items);
+    deleteBtn.onclick = () => deleteItem(index);
 
     // Puts the button inside the <li>, then the <li> in the <ul>
     li.appendChild(deleteBtn);
@@ -54,15 +56,16 @@ function showItems(items) {
  */
 async function saveItems(items) {
   try {
-    await api.post('/items', items);
-  } catch {
+    await api.post('/items', { body: items }); // Fixed: proper format for your HttpClient
+  } catch (error) {
+    console.error('Save error:', error);
     errorElement.textContent = 'Could not save changes.';
   }
 }
 
 /**
  * addItem()
- * its called when you click “Add”
+ * its called when you click "Add"
  * Reads input box, adds to array, saves & re-displays
  */
 async function addItem() {
@@ -74,36 +77,57 @@ async function addItem() {
     return;
   }
 
-  // 1) get current items
-  const items = await api.get('/items');
+  try {
+    // 1) get current items
+    const items = await api.get('/items');
 
-  // 2) Add our new text
-  items.push(newText);
+    // 2) Add our new text
+    items.push(newText);
 
-  // 3) Save it back to server
-  await saveItems(items);
+    // 3) Save it back to server
+    await saveItems(items);
 
-  // 4) Refresh the displayed list
-  showItems(items);
+    // 4) Refresh the displayed list
+    showItems(items);
 
-  // 5) Clear input and error message
-  inputElement.value = '';
-  errorElement.textContent = '';
+    // 5) Clear input and error message
+    inputElement.value = '';
+    errorElement.textContent = '';
+  } catch (error) {
+    console.error('Add item error:', error);
+    errorElement.textContent = 'Could not add item.';
+  }
 }
 
 /**
- * deleteItem(index, items)
+ * deleteItem(index)
  * Removes the item at position index from the array
  * Saves and updates the UI
  */
-async function deleteItem(index, items) {
-  items.splice(index, 1);    // remove one element
-  await saveItems(items);    // save updated array
-  showItems(items);          // update UI
+async function deleteItem(index) {
+  try {
+    // Get current items first
+    const items = await api.get('/items');
+    
+    // Remove the item
+    items.splice(index, 1);    // remove one element
+    
+    // Save updated array
+    await saveItems(items);    
+    
+    // Update UI
+    showItems(items);
+    
+    // Clear any error messages
+    errorElement.textContent = '';
+  } catch (error) {
+    console.error('Delete error:', error);
+    errorElement.textContent = 'Could not delete item.';
+  }
 }
 
 // Wires up the Add button
 addButton.onclick = addItem;
 
-// Load & display items 
+// Load & display items when page loads
 loadItems();
