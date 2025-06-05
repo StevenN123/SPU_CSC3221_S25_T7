@@ -1,112 +1,61 @@
-// app.js
+// app.js — main front-end logic
 
-import HttpClient from './http-client.js';
+import HttpLibrary from './httpLibrary.js';
 
-const api = new HttpClient('http://localhost:4000'); // ← make sure this matches server.js’s port
+// Create a reusable HTTP client that points to our Express server.
+const client = new HttpLibrary('http://localhost:5000');
 
-const listElement  = document.getElementById('itemList');
-const inputElement = document.getElementById('newItem');
-const errorElement = document.getElementById('errorMsg');
-const addButton    = document.getElementById('addBtn');
-
-/**
- * loadItems()
- * Fetches the array from GET /items and passes it to showItems()
- */
-async function loadItems() {
-  try {
-    const result = await api.get('/items');
-    // server returns { items: [...] }
-    const items = result.items;
-    showItems(items);
-    errorElement.textContent = '';
-  } catch (err) {
-    console.error('Load error:', err);
-    errorElement.textContent = 'Could not load items.';
-  }
-}
+// Grab DOM elements
+const textArea = document.getElementById('output');
+const getBtn = document.getElementById('get-btn');
+const updateBtn = document.getElementById('update-btn');
 
 /**
- * showItems(items)
- * Clears the <ul> and re-populates with <li> + delete button
+ * When the "Get List" button is clicked,
+ * fetch the current items from the server and display them.
  */
-function showItems(items) {
-  listElement.innerHTML = ''; // clear existing
-
-  items.forEach((text, index) => {
-    const li = document.createElement('li');
-    li.textContent = text;
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '✖';
-    deleteBtn.onclick = () => deleteItem(index);
-
-    li.appendChild(deleteBtn);
-    listElement.appendChild(li);
-  });
-}
-
-/**
- * saveItems(items)
- * POSTs { items: [...] } to /items
- */
-async function saveItems(items) {
-  try {
-    await api.post('/items', { items });
-  } catch (err) {
-    console.error('Save error:', err);
-    errorElement.textContent = 'Could not save changes.';
-  }
-}
-
-/**
- * addItem()
- * Reads input, pushes to array, saves & re-renders
- */
-async function addItem() {
-  const newText = inputElement.value.trim();
-  if (!newText) {
-    errorElement.textContent = 'Please type something first!';
-    return;
-  }
+getBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
 
   try {
-    const result = await api.get('/items');
-    const items = result.items;
-    items.push(newText);
+    // GET /read → returns { items: [...] }
+    const res = await client.get('/read');
+    const lines = res.items || [];
 
-    await saveItems(items);
-    showItems(items);
+    // Clear existing text in the textarea
+    textArea.value = '';
 
-    inputElement.value = '';
-    errorElement.textContent = '';
-  } catch (err) {
-    console.error('Add error:', err);
-    errorElement.textContent = 'Could not add item.';
+    // Populate each line in the textarea
+    lines.forEach((item) => {
+      textArea.value += `${item}\n`;
+    });
+  } catch (error) {
+    console.error('Error fetching list:', error);
+    alert('❌ Failed to fetch list from server.');
   }
-}
+});
 
 /**
- * deleteItem(index)
- * Fetches, splices out one entry, saves & re-renders
+ * When the "Update List" button is clicked,
+ * send the textarea’s content (one line = one item) to the server.
  */
-async function deleteItem(index) {
+updateBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
+
+  // Split on newline and trim out any empty lines
+  const rawText = textArea.value;
+  const lines = rawText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l !== '');
+
   try {
-    const result = await api.get('/items');
-    const items = result.items;
-
-    items.splice(index, 1);
-    await saveItems(items);
-    showItems(items);
-    errorElement.textContent = '';
-  } catch (err) {
-    console.error('Delete error:', err);
-    errorElement.textContent = 'Could not delete item.';
+    // POST /write { content: [...] }
+    const response = await client.post('/write', { content: lines });
+    console.log('Post success:', response);
+    alert('✅ List updated successfully.');
+  } catch (error) {
+    console.error('Error posting data:', error);
+    alert('❌ Failed to update list on server.');
   }
-}
-
-// Wire up the “Add” button:
-addButton.onclick = addItem;
-
-// Load items immediately when page loads
-loadItems();
+});
