@@ -2,8 +2,7 @@
 import HttpClient from './http-client.js';
 
 // 1) Creates a client that points to our local server
-const api = new HttpClient('http://localhost:3000');
-
+const api = new HttpClient('http://localhost:4000');
 // 2) Grabs references to the HTML elements we need
 const listElement  = document.getElementById('itemList');
 const inputElement = document.getElementById('newItem');
