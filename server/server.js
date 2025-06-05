@@ -17,7 +17,7 @@ const path = require('path');                // For resolving file paths
 const cors = require('cors');                // Handles Cross-Origin Resource Sharing (CORS)
 
 // Define constants
-const APP_PORT = 4000;                       // Port the server will run on
+const APP_PORT = 4001;                       // Port the server will run on
 const DATA_FILENAME = 'items.txt';           // File where list items will be stored
 const DATA_PATH = path.join(__dirname, DATA_FILENAME); // Full path to the data file
 const ALLOWED_ORIGIN = 'http://127.0.0.1:5500'; // Front-end client origin allowed to access this server
