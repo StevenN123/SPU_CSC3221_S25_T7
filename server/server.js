@@ -1,4 +1,4 @@
-// server.js — backend for Task Manager
+// server.js — backend for List Manager
 
 // Import required modules
 const express = require('express');     // Web framework for handling HTTP requests
