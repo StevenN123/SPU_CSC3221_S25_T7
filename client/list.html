@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>List Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Page Heading -->
+  <h1 class="title">List Manager</h1>
+  <h2>Add Items</h2>
+
+  <!-- Textarea for showing/typing items -->
+  <textarea
+    id="output"
+    rows="20"
+    cols="80"
+    placeholder="Enter items, one per line"
+  ></textarea>
+
+  <!-- Buttons to fetch or update the list -->
+  <div class="button-container">
+    <button id="get-btn">Get List</button>
+    <button id="update-btn" type="button">Update List</button>
+  </div>
+
+  <!-- Include the main front-end script as a module -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
