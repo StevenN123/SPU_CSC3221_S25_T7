@@ -3,30 +3,33 @@
 /**
  * List Manager Server
  * -------------------
+ * This server supports:
  * - GET  /items  → returns JSON { items: [ ... ] }
- * - POST /items  → accepts JSON { items: [ ... ] } to overwrite the file
+ * - POST /items  → accepts JSON { items: [ ... ] } and saves them to a file
  *
- * Uses express + fs.promises to read/write a plain-text file (one item per line).
- * Validates that each item is a non-empty string.
+ * It uses Express for routing, and Node's fs.promises for file I/O.
  */
 
-const express = require('express');
-const fs = require('fs').promises;
-const path = require('path');
-const cors = require('cors');
+// Import required modules
+const express = require('express');          // Web server framework
+const fs = require('fs').promises;           // File system with promises API
+const path = require('path');                // For resolving file paths
+const cors = require('cors');                // Handles Cross-Origin Resource Sharing (CORS)
 
-const APP_PORT = 4000;
-const DATA_FILENAME = 'items.txt';               // name of file on disk
-const DATA_PATH = path.join(__dirname, DATA_FILENAME);
-const ALLOWED_ORIGIN = 'http://127.0.0.1:5500';   // adjust if your client is elsewhere
+// Define constants
+const APP_PORT = 4000;                       // Port the server will run on
+const DATA_FILENAME = 'items.txt';           // File where list items will be stored
+const DATA_PATH = path.join(__dirname, DATA_FILENAME); // Full path to the data file
+const ALLOWED_ORIGIN = 'http://127.0.0.1:5500'; // Front-end client origin allowed to access this server
 
-const app = express();
+const app = express();                       // Create Express application
 
 // === MIDDLEWARE ===
-// Parse JSON bodies
+
+// Parses incoming JSON request bodies
 app.use(express.json());
 
-// CORS (only allow our front-end origin)
+// Enables CORS to allow only the specified front-end origin
 app.use(
   cors({
     origin: ALLOWED_ORIGIN,
@@ -36,30 +39,30 @@ app.use(
 // === HELPERS ===
 
 /**
- * Ensure the data file exists. If not, create an empty file.
+ * ensureDataFileExists()
+ * Checks if the data file exists, and if not, creates an empty one.
  */
 async function ensureDataFileExists() {
   try {
-    await fs.access(DATA_PATH);
-    // file exists → do nothing
+    await fs.access(DATA_PATH);             // Check file accessibility
   } catch (err) {
-    if (err.code === 'ENOENT') {
-      // create an empty file
-      await fs.writeFile(DATA_PATH, '', 'utf8');
+    if (err.code === 'ENOENT') {            // File does not exist
+      await fs.writeFile(DATA_PATH, '', 'utf8'); // Create empty file
     } else {
-      throw err;
+      throw err;                            // Re-throw unexpected errors
     }
   }
 }
 
 /**
- * Load all items from items.txt.
- * Returns an array of non-empty strings.
+ * loadItems()
+ * Reads the file and returns an array of non-empty strings.
  */
 async function loadItems() {
-  await ensureDataFileExists();
-  const raw = await fs.readFile(DATA_PATH, 'utf8');
-  // split on newline, trim whitespace, filter out empty lines
+  await ensureDataFileExists();             // Make sure file exists first
+  const raw = await fs.readFile(DATA_PATH, 'utf8'); // Read file content
+
+  // Split by lines, trim whitespace, and remove empty lines
   return raw
     .split('\n')
     .map((line) => line.trim())
@@ -67,23 +70,25 @@ async function loadItems() {
 }
 
 /**
- * Save an array of strings to items.txt, one per line.
- * @param {string[]} itemsArray
+ * saveItems(itemsArray)
+ * Overwrites the file with each item on a new line.
+ * @param {string[]} itemsArray - Array of strings to be saved
  */
 async function saveItems(itemsArray) {
-  // Join with newline. If array is empty, file becomes empty string.
-  const data = itemsArray.join('\n');
-  await fs.writeFile(DATA_PATH, data, 'utf8');
+  const data = itemsArray.join('\n');       // Join all items with newline
+  await fs.writeFile(DATA_PATH, data, 'utf8'); // Write to file
 }
 
 /**
- * Validate that every element in array is a non-empty string.
- * Returns { valid: boolean, reason: string|null }
+ * validateItemsArray(arr)
+ * Validates that input is an array of non-empty strings.
+ * Returns an object with { valid, reason }
  */
 function validateItemsArray(arr) {
   if (!Array.isArray(arr)) {
     return { valid: false, reason: 'Payload must be an array.' };
   }
+
   for (let i = 0; i < arr.length; i++) {
     const val = arr[i];
     if (typeof val !== 'string') {
@@ -93,59 +98,60 @@ function validateItemsArray(arr) {
       return { valid: false, reason: `Item at index ${i} is empty.` };
     }
   }
-  return { valid: true, reason: null };
+
+  return { valid: true, reason: null };     // All items passed validation
 }
 
 // === ROUTES ===
 
 /**
  * GET /items
- *  - Returns all items as JSON: { items: [ ... ] }
+ * Returns the list of items as JSON: { items: [...] }
  */
 app.get('/items', async (req, res) => {
   try {
-    const items = await loadItems();
-    return res.json({ items });
+    const items = await loadItems();        // Load items from file
+    return res.json({ items });             // Return as JSON
   } catch (err) {
     console.error('Error loading items:', err);
-    return res.status(500).json({ error: 'Could not load items.' });
+    return res.status(500).json({ error: 'Could not load items.' }); // Server error
   }
 });
 
 /**
  * POST /items
- *  - Expects JSON body: { items: [ 'item1', 'item2', ... ] }
- *  - Validates array contents, then saves to file.
+ * Accepts JSON { items: [...] }, validates and saves them
  */
 app.post('/items', async (req, res) => {
-  const { items } = req.body;
+  const { items } = req.body;               // Extract items from request body
 
-  // Basic validation
-  const { valid, reason } = validateItemsArray(items);
+  const { valid, reason } = validateItemsArray(items); // Validate input
   if (!valid) {
-    return res.status(400).json({ error: reason });
+    return res.status(400).json({ error: reason }); // Return validation error
   }
 
   try {
-    await saveItems(items);
-    return res.json({ message: 'Items saved successfully.' });
+    await saveItems(items);                 // Save to file
+    return res.json({ message: 'Items saved successfully.' }); // Success
   } catch (err) {
     console.error('Error saving items:', err);
-    return res.status(500).json({ error: 'Could not save items.' });
+    return res.status(500).json({ error: 'Could not save items.' }); // Server error
   }
 });
 
-// Catch-all for undefined routes
+// Catch-all route for undefined paths
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found.' });
+  res.status(404).json({ error: 'Route not found.' }); // 404 handler
 });
 
 // === START SERVER ===
+
+// Start listening on defined port
 app
   .listen(APP_PORT, () => {
     console.log(`✅  List Manager server listening on http://localhost:${APP_PORT}`);
     console.log(`⚡ Front-end must run at ${ALLOWED_ORIGIN} (or adjust CORS settings).`);
   })
   .on('error', (err) => {
-    console.error('Server error:', err);
+    console.error('Server error:', err);    // Log any server startup errors
   });
