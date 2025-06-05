@@ -1,43 +1,151 @@
+// server.js
+
+/**
+ * List Manager Server
+ * -------------------
+ * - GET  /items  → returns JSON { items: [ ... ] }
+ * - POST /items  → accepts JSON { items: [ ... ] } to overwrite the file
+ *
+ * Uses express + fs.promises to read/write a plain-text file (one item per line).
+ * Validates that each item is a non-empty string.
+ */
+
 const express = require('express');
-const mongoose = require('mongoose');
-const Task = require('./models/Task');
+const fs = require('fs').promises;
 const path = require('path');
-require('dotenv').config();
+const cors = require('cors');
+
+const APP_PORT = 4000;
+const DATA_FILENAME = 'items.txt';               // name of file on disk
+const DATA_PATH = path.join(__dirname, DATA_FILENAME);
+const ALLOWED_ORIGIN = 'http://127.0.0.1:5500';   // adjust if your client is elsewhere
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
+// === MIDDLEWARE ===
+// Parse JSON bodies
 app.use(express.json());
-app.use(express.static('public'));
 
-// Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log('🟢 Connected to MongoDB Atlas'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// CORS (only allow our front-end origin)
+app.use(
+  cors({
+    origin: ALLOWED_ORIGIN,
+  })
+);
 
-// Routes
-app.get('/tasks', async (req, res) => {
-  const tasks = await Task.find();
-  res.json(tasks);
+// === HELPERS ===
+
+/**
+ * Ensure the data file exists. If not, create an empty file.
+ */
+async function ensureDataFileExists() {
+  try {
+    await fs.access(DATA_PATH);
+    // file exists → do nothing
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      // create an empty file
+      await fs.writeFile(DATA_PATH, '', 'utf8');
+    } else {
+      throw err;
+    }
+  }
+}
+
+/**
+ * Load all items from items.txt.
+ * Returns an array of non-empty strings.
+ */
+async function loadItems() {
+  await ensureDataFileExists();
+  const raw = await fs.readFile(DATA_PATH, 'utf8');
+  // split on newline, trim whitespace, filter out empty lines
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+/**
+ * Save an array of strings to items.txt, one per line.
+ * @param {string[]} itemsArray
+ */
+async function saveItems(itemsArray) {
+  // Join with newline. If array is empty, file becomes empty string.
+  const data = itemsArray.join('\n');
+  await fs.writeFile(DATA_PATH, data, 'utf8');
+}
+
+/**
+ * Validate that every element in array is a non-empty string.
+ * Returns { valid: boolean, reason: string|null }
+ */
+function validateItemsArray(arr) {
+  if (!Array.isArray(arr)) {
+    return { valid: false, reason: 'Payload must be an array.' };
+  }
+  for (let i = 0; i < arr.length; i++) {
+    const val = arr[i];
+    if (typeof val !== 'string') {
+      return { valid: false, reason: `Item at index ${i} is not a string.` };
+    }
+    if (val.trim().length === 0) {
+      return { valid: false, reason: `Item at index ${i} is empty.` };
+    }
+  }
+  return { valid: true, reason: null };
+}
+
+// === ROUTES ===
+
+/**
+ * GET /items
+ *  - Returns all items as JSON: { items: [ ... ] }
+ */
+app.get('/items', async (req, res) => {
+  try {
+    const items = await loadItems();
+    return res.json({ items });
+  } catch (err) {
+    console.error('Error loading items:', err);
+    return res.status(500).json({ error: 'Could not load items.' });
+  }
 });
 
-app.post('/tasks', async (req, res) => {
-  const task = new Task({ text: req.body.text });
-  await task.save();
-  res.status(201).json(task);
+/**
+ * POST /items
+ *  - Expects JSON body: { items: [ 'item1', 'item2', ... ] }
+ *  - Validates array contents, then saves to file.
+ */
+app.post('/items', async (req, res) => {
+  const { items } = req.body;
+
+  // Basic validation
+  const { valid, reason } = validateItemsArray(items);
+  if (!valid) {
+    return res.status(400).json({ error: reason });
+  }
+
+  try {
+    await saveItems(items);
+    return res.json({ message: 'Items saved successfully.' });
+  } catch (err) {
+    console.error('Error saving items:', err);
+    return res.status(500).json({ error: 'Could not save items.' });
+  }
 });
 
-app.put('/tasks/:id', async (req, res) => {
-  const updated = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(updated);
+// Catch-all for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found.' });
 });
 
-app.delete('/tasks/:id', async (req, res) => {
-  await Task.findByIdAndDelete(req.params.id);
-  res.sendStatus(204);
-});
-
-// Start server
-app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+// === START SERVER ===
+app
+  .listen(APP_PORT, () => {
+    console.log(`✅  List Manager server listening on http://localhost:${APP_PORT}`);
+    console.log(`⚡ Front-end must run at ${ALLOWED_ORIGIN} (or adjust CORS settings).`);
+  })
+  .on('error', (err) => {
+    console.error('Server error:', err);
+  });
